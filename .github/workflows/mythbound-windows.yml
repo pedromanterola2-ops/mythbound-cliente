@@ -1,0 +1,94 @@
+name: Mythbound para Windows
+
+# Compila el cliente de Windows en los servidores de GitHub.
+# Se lanza solo al subir cambios a main, o a mano desde la pestaña Actions → «Run workflow».
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths-ignore:
+      - "**.md"
+      - "empaquetado/mac/**"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: windows-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  windows:
+    name: Compilar Mythbound para Windows
+    runs-on: windows-2025-vs2026
+    timeout-minutes: 150
+    env:
+      FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+      VCPKG_DEFAULT_BINARY_CACHE: ${{ github.workspace }}\vcpkg-bincache
+      VCPKG_BINARY_SOURCES: clear;files,${{ github.workspace }}\vcpkg-bincache,readwrite
+      SCCACHE_DIR: ${{ github.workspace }}\.sccache
+    steps:
+      - name: Descargar el código
+        uses: actions/checkout@v6
+
+      - name: Preparar carpetas y versión de vcpkg
+        shell: pwsh
+        run: |
+          $json = Get-Content vcpkg.json -Raw | ConvertFrom-Json
+          "VCPKG_GIT_COMMIT_ID=$($json.'builtin-baseline')" | Out-File -FilePath $env:GITHUB_ENV -Append
+          New-Item -ItemType Directory -Force -Path $env:VCPKG_DEFAULT_BINARY_CACHE, $env:SCCACHE_DIR | Out-Null
+          Remove-Item -Recurse -Force C:\mysql* -ErrorAction SilentlyContinue
+
+      - name: Recuperar librerías ya compiladas (acelera las siguientes veces)
+        uses: actions/cache@v4
+        with:
+          path: vcpkg-bincache
+          key: vcpkg-win-${{ hashFiles('vcpkg.json', 'vcpkg-configuration.json', 'cmake/triplets/**') }}
+          restore-keys: vcpkg-win-
+
+      - name: Caché del compilador
+        uses: hendrikmuhs/ccache-action@v1.2.23
+        with:
+          max-size: "1G"
+          variant: "sccache"
+          key: sccache-windows-release
+          restore-keys: sccache-windows
+
+      - name: Instalar vcpkg
+        uses: lukka/run-vcpkg@v11
+        with:
+          vcpkgGitURL: "https://github.com/microsoft/vcpkg.git"
+          vcpkgGitCommitId: ${{ env.VCPKG_GIT_COMMIT_ID }}
+
+      - name: Compilar
+        uses: lukka/run-cmake@v10
+        with:
+          configurePreset: windows-release
+          buildPreset: windows-release
+          configurePresetAdditionalArgs: "['-DTOGGLE_BIN_FOLDER=ON', '-DOPTIONS_ENABLE_IPO=OFF', '-DOTCLIENT_BUILD_TESTS=OFF']"
+
+      - name: Armar la carpeta «Mythbound para Windows»
+        shell: pwsh
+        run: |
+          $bin = "build\windows-release\bin"
+          $out = "dist\Mythbound para Windows"
+          New-Item -ItemType Directory -Force -Path $out | Out-Null
+          $exe = Get-ChildItem $bin -Filter *.exe | Where-Object { $_.Name -notmatch 'test' } | Select-Object -First 1
+          if (-not $exe) { throw "No se generó el .exe" }
+          Copy-Item $exe.FullName "$out\Mythbound.exe"
+          Get-ChildItem $bin -Filter *.dll -ErrorAction SilentlyContinue | Copy-Item -Destination $out
+          Copy-Item -Recurse data, modules, mods $out
+          Copy-Item init.lua, otclientrc.lua, cacert.pem $out
+          Get-ChildItem "$out" -Recurse -Include *.orig, *.mythbound | Remove-Item -Force
+          New-Item -ItemType Directory -Force -Path "$out\data\things\1098" | Out-Null
+          Copy-Item empaquetado\windows\LEEME.txt $out
+          Copy-Item empaquetado\windows\FALTAN-LOS-SPRITES.txt "$out\data\things\1098\"
+          "Compilado el $(Get-Date -Format 'yyyy-MM-dd HH:mm') desde $env:GITHUB_SHA" | Out-File "$out\VERSION.txt" -Encoding utf8
+          Get-ChildItem $out | Format-Table Name, Length
+
+      - name: Subir «Mythbound para Windows (sin sprites)»
+        uses: actions/upload-artifact@v7
+        with:
+          name: Mythbound-para-Windows-sin-sprites
+          path: dist/
+          retention-days: 30

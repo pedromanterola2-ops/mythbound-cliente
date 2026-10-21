@@ -1,0 +1,3 @@
+Aquí van Tibia.dat, Tibia.spr y Tibia.otfi (versión 10.98).
+No se guardan en GitHub (Tibia.spr pesa ~400 MB).
+En la Mac, el script 8-empaquetar-windows.sh los agrega solo.

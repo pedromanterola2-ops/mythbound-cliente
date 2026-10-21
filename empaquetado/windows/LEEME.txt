@@ -1,0 +1,18 @@
+MYTHBOUND PARA WINDOWS
+======================
+
+Este es el cliente de Mythbound para WINDOWS (10 u 11, 64 bits).
+Si tienes una Mac, este no es tu cliente: usa «Mythbound para Mac».
+
+Cómo jugar
+----------
+1. Descomprime toda la carpeta «Mythbound para Windows» donde quieras
+   (por ejemplo en Documentos). No muevas el .exe fuera de la carpeta.
+2. Abre Mythbound.exe.
+3. Entra con tu cuenta. Si no tienes, créala en la página de Mythbound.
+
+Si Windows muestra «Windows protegió tu PC», haz clic en «Más información»
+y luego en «Ejecutar de todas formas». Sale porque el programa no está
+firmado por una empresa; no es un virus.
+
+Mythbound es un servidor de fans, sin relación con CipSoft.
