@@ -10,7 +10,7 @@ Hay **dos clientes** y salen del mismo código. Cambia solo cómo se compila y c
 | Se compila | En la Mac de Pedro, con `2-compilar-cliente.sh` / `4-recompilar-cliente.sh` | En GitHub, con la acción **Mythbound para Windows** |
 | Archivo que se juega | `Mythbound para Mac.app` | `Mythbound para Windows\Mythbound.exe` |
 | Dónde queda listo | `~/My Games/ot-server-mac/clientes/Mac/` | `~/My Games/ot-server-mac/clientes/Windows/Mythbound para Windows.zip` |
-| Ícono | Escudo de Mythbound (`data/images/clienticon.png`) | El mismo, convertido a `cmake/icon/otcicon.ico` |
+| Ícono | El de Mythbound (`data/images/clienticon.png`) | El mismo, convertido a `cmake/icon/otcicon.ico` |
 
 ## Compilar la versión de Windows
 
