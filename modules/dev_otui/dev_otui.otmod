@@ -5,7 +5,7 @@ Module
   website: none
   sandboxed: true
   scripts: [ otml, dev_otui ]
-  autoload: true
+  autoload: false
   dependencies: [ client_topmenu ]
   @onLoad: init()
   @onUnload: terminate()

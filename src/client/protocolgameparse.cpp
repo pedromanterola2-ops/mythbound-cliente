@@ -47,6 +47,9 @@
 #include <fmt/format.h>
 #include <framework/util/stats.h>
 
+// Mythbound (tibia-oce/BlackTek 10.98) agrega datos propios al protocolo
+static bool isMythbound() { return g_game.getClientVersion() == 1098; }
+
 void ProtocolGame::parseMessage(const InputMessagePtr& msg)
 {
     int opcode = -1;
@@ -63,6 +66,26 @@ void ProtocolGame::parseMessage(const InputMessagePtr& msg)
                     g_game.processGameStart();
                     m_gameInitialized = true;
                 }
+            }
+
+            // Mythbound: mensajes propios (autoloot 0x60 y actualizar contenedor 0x54)
+            if (isMythbound() && (opcode == 0x60 || opcode == 0x54)) {
+                if (opcode == 0x60) {
+                    // lista de autoloot: se pasa a Lua (modulo game_autoloot)
+                    const bool remove = msg->getU8() == 1;
+                    const uint16_t count = msg->getU16();
+                    std::vector<std::string> names;
+                    std::vector<int> ids;
+                    for (uint16_t i = 0; i < count; ++i) {
+                        names.emplace_back(msg->getString()); // name
+                        ids.push_back(msg->getU16()); // clientId
+                    }
+                    g_lua.callGlobalField("g_game", "onMythboundAutoloot", remove, ids, names);
+                } else {
+                    msg->getU8(); // containerId
+                }
+                prevOpcode = opcode;
+                continue;
             }
 
             // try to parse in lua first
@@ -1613,6 +1636,7 @@ void ProtocolGame::parseOpenContainer(const InputMessagePtr& msg)
 
     for (auto i = 0; i < itemCount; i++) {
         items.push_back(getItem(msg));
+        if (isMythbound()) msg->getU16(); // loot category
     }
 
     if (g_game.getFeature(Otc::GameContainerFilter)) {
@@ -1643,6 +1667,7 @@ void ProtocolGame::parseContainerAddItem(const InputMessagePtr& msg)
     const uint8_t containerId = msg->getU8();
     const uint16_t slot = g_game.getFeature(Otc::GameContainerPagination) ? msg->getU16() : 0;
     const auto& item = getItem(msg);
+    if (isMythbound()) msg->getU16(); // loot category
 
     g_game.processContainerAddItem(containerId, item, slot);
 }
@@ -1652,6 +1677,7 @@ void ProtocolGame::parseContainerUpdateItem(const InputMessagePtr& msg)
     const uint8_t containerId = msg->getU8();
     const uint16_t slot = g_game.getFeature(Otc::GameContainerPagination) ? msg->getU16() : msg->getU8();
     const auto& item = getItem(msg);
+    if (isMythbound()) msg->getU16(); // loot category
 
     g_game.processContainerUpdateItem(containerId, slot, item);
 }
@@ -1788,6 +1814,7 @@ void ProtocolGame::parseAddInventoryItem(const InputMessagePtr& msg)
 {
     const uint8_t slot = msg->getU8();
     const auto& item = getItem(msg);
+    if (isMythbound()) msg->getU16(); // loot category
 
     g_game.processInventoryChange(slot, item);
 }
@@ -2707,6 +2734,20 @@ void ProtocolGame::parsePlayerSkills(const InputMessagePtr& msg) const
 
         m_localPlayer->setSkill(static_cast<Otc::Skill>(skill), level, levelPercent);
         m_localPlayer->setBaseSkill(static_cast<Otc::Skill>(skill), baseLevel);
+    }
+
+    // Mythbound: 6 habilidades propias tras pesca (mineria, tala, herbolaria,
+    // artesania, encantamiento, desencantamiento): u16 nivel, u16 base, u8 %
+    if (isMythbound()) {
+        // se mandan a Lua como lista plana: nivel, base, porcentaje (x6)
+        std::vector<int> mythSkills;
+        mythSkills.reserve(18);
+        for (int i = 0; i < 6; ++i) {
+            mythSkills.push_back(msg->getU16()); // nivel
+            mythSkills.push_back(msg->getU16()); // base
+            mythSkills.push_back(msg->getU8());  // porcentaje
+        }
+        g_lua.callGlobalField("g_game", "onMythboundSkills", mythSkills);
     }
 
     if (g_game.getFeature(Otc::GameAdditionalSkills)) {
@@ -6823,6 +6864,11 @@ static Otc::MarketItemDescription getMarketLastAttribute(int clientVersion)
 
 static bool shouldSkipMarketAttribute(int attr)
 {
+    // Mythbound no manda la linea "combat" (absorciones) en el detalle del Market
+    if (attr == Otc::ITEM_DESC_COMBAT && isMythbound()) {
+        return true;
+    }
+
     if (attr == Otc::ITEM_DESC_AUGMENT && !g_game.getFeature(Otc::GameItemAugment)) {
         return true;
     }

@@ -1,4 +1,56 @@
 local iconTopMenu = nil
+-- Mythbound: marcas fijas del minimapa (ciudades, portales y hunts)
+local MYTHBOUND_FLAGS = {
+    {pos = {x = 1093, y = 411, z = 5}, icon = 9, text = "Templo de Mordragor"},
+    {pos = {x = 1929, y = 384, z = 7}, icon = 9, text = "Templo de Kindernia"},
+    {pos = {x = 374, y = 326, z = 7}, icon = 9, text = "Templo de Dolwatha"},
+    {pos = {x = 668, y = 423, z = 7}, icon = 9, text = "Templo de Falanaar"},
+    {pos = {x = 1217, y = 1028, z = 5}, icon = 9, text = "Templo de Freewind"},
+    {pos = {x = 1449, y = 1292, z = 5}, icon = 9, text = "Templo de Arkeron"},
+    {pos = {x = 1376, y = 407, z = 6}, icon = 9, text = "Templo de Death Valley"},
+    {pos = {x = 1094, y = 415, z = 5}, icon = 3, text = "Portal de viajes (o escribe !viajes)"},
+    {pos = {x = 374, y = 328, z = 7}, icon = 3, text = "Portal de viajes (o escribe !viajes)"},
+    {pos = {x = 663, y = 423, z = 7}, icon = 3, text = "Portal de viajes (o escribe !viajes)"},
+    {pos = {x = 1376, y = 409, z = 6}, icon = 3, text = "Portal de viajes (o escribe !viajes)"},
+    {pos = {x = 1217, y = 1025, z = 5}, icon = 3, text = "Portal de viajes (o escribe !viajes)"},
+    {pos = {x = 1449, y = 1296, z = 5}, icon = 3, text = "Portal de viajes (o escribe !viajes)"},
+    {pos = {x = 1267, y = 460, z = 7}, icon = 8, text = "Hunt nivel 5: Snakes"},
+    {pos = {x = 2039, y = 363, z = 5}, icon = 8, text = "Hunt nivel 7: Trolls y Bears"},
+    {pos = {x = 1374, y = 975, z = 6}, icon = 8, text = "Hunt nivel 7: Frost Trolls"},
+    {pos = {x = 1199, y = 325, z = 7}, icon = 8, text = "Hunt nivel 19: Cyclops"},
+    {pos = {x = 276, y = 360, z = 6}, icon = 8, text = "Hunt nivel 42: Dragons y Dragon Hatchlings"},
+    {pos = {x = 1879, y = 1120, z = 7}, icon = 8, text = "Hunt nivel 42: Dragons y Dragon Lords"},
+    {pos = {x = 1136, y = 482, z = 7}, icon = 8, text = "Hunt nivel 8: Trolls y Troll Champions"},
+    {pos = {x = 1077, y = 281, z = 7}, icon = 8, text = "Hunt nivel 8: Goblins y Goblin Assassins"},
+    {pos = {x = 1045, y = 919, z = 8}, icon = 8, text = "Hunt nivel 10: Chakoya Toolshapers y Chakoya Windcallers"},
+    {pos = {x = 1174, y = 431, z = 8}, icon = 8, text = "Hunt nivel 13: Rotworms y Carrion Worms"},
+    {pos = {x = 1108, y = 50, z = 7}, icon = 8, text = "Hunt nivel 13: Elves y Elf Scouts"},
+    {pos = {x = 1009, y = 518, z = 9}, icon = 8, text = "Hunt nivel 17: Crypt Shamblers y Elf Arcanists"},
+    {pos = {x = 1096, y = 29, z = 6}, icon = 8, text = "Hunt nivel 22: Barbarian Bloodwalkers y Barbarian Headsplitters"},
+    {pos = {x = 576, y = 298, z = 5}, icon = 8, text = "Hunt nivel 25: Deepling Brawlers y Deepling Spellsingers"},
+    {pos = {x = 1014, y = 527, z = 7}, icon = 8, text = "Hunt nivel 27: Vampires y Necromancers"},
+    {pos = {x = 448, y = 183, z = 13}, icon = 8, text = "Hunt nivel 32: Green Djinns y Efreets"},
+    {pos = {x = 992, y = 621, z = 11}, icon = 8, text = "Hunt nivel 38: Demon Skeletons y Giant Spiders"},
+    {pos = {x = 1571, y = 933, z = 7}, icon = 8, text = "Hunt nivel 40: Ogre Brutes y Ogre Savages"},
+    {pos = {x = 1813, y = 1143, z = 8}, icon = 8, text = "Hunt nivel 45: Massive Earth Elementals y Bog Raiders"},
+    {pos = {x = 1107, y = 202, z = 9}, icon = 8, text = "Hunt nivel 55: Necromancers y Vile Grandmasters"},
+    {pos = {x = 1535, y = 998, z = 10}, icon = 8, text = "Hunt nivel 56: Yielothax y Blood Beasts"},
+    {pos = {x = 1740, y = 934, z = 7}, icon = 8, text = "Hunt nivel 61: Worm Priestess y Minotaur Amazons"},
+    {pos = {x = 1735, y = 877, z = 6}, icon = 8, text = "Hunt nivel 65: Yielothax y Lost Berserkers"},
+    {pos = {x = 1971, y = 1084, z = 5}, icon = 8, text = "Hunt nivel 75: Warlocks y Infernalists"},
+    {pos = {x = 1865, y = 925, z = 6}, icon = 12, text = "Hunt nivel 86: Magma Crawlers y Infected Weepers"},
+    {pos = {x = 1866, y = 949, z = 7}, icon = 12, text = "Hunt nivel 86: Lost Berserkers y Stone Devourers"},
+    {pos = {x = 1224, y = 34, z = 9}, icon = 12, text = "Hunt nivel 88: Medusas y Serpent Spawns"},
+    {pos = {x = 1830, y = 1093, z = 9}, icon = 12, text = "Hunt nivel 101: Blightwalkers y Ghastly Dragons"},
+    {pos = {x = 448, y = 655, z = 8}, icon = 12, text = "Hunt nivel 102: Midnight Asuras y Dawnfire Asuras"},
+    {pos = {x = 559, y = 323, z = 9}, icon = 12, text = "Hunt nivel 103: Draken Spellweavers y Draken Elites"},
+    {pos = {x = 1187, y = 847, z = 10}, icon = 12, text = "Hunt nivel 109: Destroyers y Blightwalkers"},
+    {pos = {x = 1355, y = 280, z = 9}, icon = 12, text = "Hunt nivel 109: Demon Outcasts y Dark Torturers"},
+    {pos = {x = 1555, y = 326, z = 7}, icon = 12, text = "Hunt nivel 109: Frazzlemaws y Silencers"},
+    {pos = {x = 1204, y = 40, z = 12}, icon = 12, text = "Hunt nivel 118: Hellspawns y Grim Reapers"},
+    {pos = {x = 1478, y = 406, z = 10}, icon = 12, text = "Hunt nivel 122: Demon Outcasts y Energy Elementals"},
+    {pos = {x = 1415, y = 378, z = 9}, icon = 12, text = "Hunt nivel 125: Demon Outcasts y Plaguesmiths"},
+}
 -- @ Minimap
 local minimapWidget = nil -- bot fix
 local otmm = true
@@ -126,11 +178,19 @@ function mapController:onGameStart()
         loadFnc = g_map.loadOtcm
     end
 
-    if g_resources.fileExists(minimapFile) then
+    -- Mythbound: el mundo completo viene descubierto (data/minimap_mythbound.otmm)
+    if otmm and g_resources.fileExists('/minimap_mythbound.otmm') then
+        g_minimap.loadOtmm('/minimap_mythbound.otmm')
+    elseif g_resources.fileExists(minimapFile) then
         loadFnc(minimapFile)
     end
 
     self.ui.minimapBorder.minimap:load()
+
+    -- Mythbound: marcas de ciudades, portales y hunts
+    for _, flag in ipairs(MYTHBOUND_FLAGS) do
+        self.ui.minimapBorder.minimap:addFlag(flag.pos, flag.icon, flag.text, true)
+    end
 end
 
 function mapController:onGameEnd()

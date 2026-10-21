@@ -181,7 +181,9 @@ function optionsController:onInit()
 end
 
 function toggleStore()
-    if  g_game.getFeature(GameIngameStore) then
+    -- Mythbound (10.98): la tienda va por opcode extendido 102 (modulo game_shop).
+    -- No se desactiva GameIngameStore porque el paquete de login 0x17 la necesita.
+    if g_game.getFeature(GameIngameStore) and g_game.getClientVersion() ~= 1098 then
         modules.game_store.toggle() -- cipsoft packets
     else
         modules.game_shop.toggle() -- custom

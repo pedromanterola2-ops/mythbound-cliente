@@ -54,6 +54,7 @@ end
 
 -- objects
 function init()
+  mythboundAnalyserInit() -- Mythbound: daño/curación/loot desde mensajes (10.98)
 
   analyserButton = modules.game_mainpanel.addToggleButton('analyzerButton', 
                                                             tr('Open analytics selector window'),
@@ -194,6 +195,7 @@ function init()
 end
 
 function terminate()
+  mythboundAnalyserTerminate()
   if analyserButton then
     analyserButton:destroy()
     analyserButton = nil

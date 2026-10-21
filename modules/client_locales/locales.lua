@@ -60,6 +60,7 @@ end
 
 function onExtendedLocales(protocol, opcode, buffer)
     local locale = installedLocales[buffer]
+    if buffer ~= 'en' then return end -- Mythbound: ignorar cambios de idioma del servidor
     if locale and setLocale(locale.name) then
         g_modules.reloadModules()
     end
@@ -71,8 +72,10 @@ function init()
 
     installLocales('/locales')
 
-    local userLocaleName = g_settings.get('locale', 'false')
-    if userLocaleName ~= 'false' and setLocale(userLocaleName) then
+    -- Mythbound: el cliente siempre en inglés (sin ventana de idioma)
+    g_settings.set('locale', 'en')
+    local userLocaleName = 'en'
+    if setLocale(userLocaleName) then
         pdebug('Using configured locale: ' .. userLocaleName)
     else
         setLocale(defaultLocaleName)

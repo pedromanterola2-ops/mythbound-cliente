@@ -122,9 +122,11 @@ function skillController:onInit()
 
     setupUIButtons()
     skillsWindow:setup()
+    connect(g_game, { onMythboundSkills = onMythboundSkills })
 end
 
 function skillController:onTerminate()
+    disconnect(g_game, { onMythboundSkills = onMythboundSkills })
     Keybind.delete("Windows", "Show/hide skills windows")
     skillsWindow:destroy()
     skillsButton:destroy()
@@ -1619,4 +1621,37 @@ end
 -- Function to get just the base experience rate
 function getBaseExpRate()
     return ExpRating[ExperienceRate.BASE] or 100
+end
+
+
+-- Mythbound: habilidades de oficio (mineria, tala, herbolaria, artesania,
+-- encantamiento, desencantamiento). El cliente recibe 18 valores:
+-- nivel, base y porcentaje de cada una.
+function onMythboundSkills(values)
+    if not skillsWindow or type(values) ~= "table" then
+        return
+    end
+    local changed = false
+    for i = 0, 5 do
+        local id = "mythSkill" .. i
+        local level = values[i * 3 + 1] or 0
+        local base = values[i * 3 + 2] or 0
+        local percent = values[i * 3 + 3] or 0
+        local skill = skillsWindow:recursiveGetChildById(id)
+        if skill then
+            if not skill:isVisible() then
+                skill:setVisible(true)
+                changed = true
+            end
+            local valueWidget = skill:getChildById("value")
+            if valueWidget then
+                valueWidget:setText(tostring(level))
+            end
+            setSkillBase(id, level, base)
+            setSkillPercent(id, percent, tr("You have %s percent to go", 100 - percent))
+        end
+    end
+    if changed then
+        updateHeight()
+    end
 end

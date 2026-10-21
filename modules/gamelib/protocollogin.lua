@@ -222,10 +222,21 @@ function ProtocolLogin:parseCharacterList(msg)
             local character = {}
             local worldId = msg:getU8()
             character.name = msg:getString()
-            character.worldName = worlds[worldId].worldName
-            character.worldIp = worlds[worldId].worldIp
-            character.worldPort = worlds[worldId].worldPort
-            character.previewState = worlds[worldId].previewState
+            -- Mythbound/BlackTek manda datos extra por personaje: nivel, vocación y outfit
+            character.level = msg:getU32()
+            character.vocation = msg:getU16()
+            local lookType = msg:getU16()
+            if lookType ~= 0 then
+                for _ = 1, 5 do msg:getU8() end -- head, body, legs, feet, addons
+            else
+                msg:getU16() -- lookTypeEx
+            end
+            msg:getU16() -- mount
+            local world = worlds[worldId] or worlds[0] or {}
+            character.worldName = world.worldName
+            character.worldIp = world.worldIp
+            character.worldPort = world.worldPort
+            character.previewState = world.previewState
             characters[i] = character
         end
 

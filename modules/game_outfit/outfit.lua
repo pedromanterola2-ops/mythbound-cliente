@@ -1825,6 +1825,10 @@ function loadSettings()
         settings = json_data[g_game.getCharacterName()]
         if not settings then
             loadDefaultSettings()
+        elseif not settings.movementFixed then
+            -- Mythbound: vista previa quieta por defecto (se puede activar con la casilla)
+            settings.movement = false
+            settings.movementFixed = true
         end
     else
         loadDefaultSettings()
@@ -1833,7 +1837,8 @@ end
 
 function loadDefaultSettings()
     settings = {
-        movement = true,
+        movement = false, -- Mythbound: el personaje queda quieto en la vista previa
+        movementFixed = true,
         showFloor = true,
         showOutfit = true,
         showMount = true,

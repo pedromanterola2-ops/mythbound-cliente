@@ -1,5 +1,6 @@
 local DONATION_URL = nil
 local GAME_SHOP_CODE = 201
+MYTHBOUND_SHOP_CODE = 102 -- tienda del servidor Mythbound (data/scripts/store)
 
 local categories = {}
 local offers = {}
@@ -35,6 +36,7 @@ function init()
     )
 
     ProtocolGame.registerExtendedOpcode(GAME_SHOP_CODE, onExtendedOpcode)
+    ProtocolGame.registerExtendedOpcode(MYTHBOUND_SHOP_CODE, onMythboundOpcode)
     if g_game.isOnline() then
         create()
     end
@@ -50,6 +52,7 @@ function terminate()
     )
 
     ProtocolGame.unregisterExtendedOpcode(GAME_SHOP_CODE, onExtendedOpcode)
+    ProtocolGame.unregisterExtendedOpcode(MYTHBOUND_SHOP_CODE, onMythboundOpcode)
     destroy()
 end
 
@@ -95,7 +98,7 @@ function create()
 
     local protocolGame = g_game.getProtocolGame()
     if protocolGame then
-        protocolGame:sendExtendedOpcode(GAME_SHOP_CODE, json.encode({action = "fetch", data = {}}))
+        shopSend(protocolGame, GAME_SHOP_CODE, json.encode({action = "fetch", data = {}}))
     end
     createTransferWindow()
 end
@@ -464,7 +467,7 @@ function updateDescription(self)
         categoryToUse = self.data.parent
     end
 
-    g_game.getProtocolGame():sendExtendedOpcode(
+    shopSend(g_game.getProtocolGame(), 
         GAME_SHOP_CODE,
         json.encode({
             action = "getDescription",
@@ -628,7 +631,7 @@ end
 function buyConfirmed()
     local protocolGame = g_game.getProtocolGame()
     if protocolGame then
-        protocolGame:sendExtendedOpcode(
+        shopSend(protocolGame, 
             GAME_SHOP_CODE,
             json.encode(
                 {
@@ -669,7 +672,7 @@ end
 function confirmChangeName()
     local protocolGame = g_game.getProtocolGame()
     if protocolGame then
-        protocolGame:sendExtendedOpcode(
+        shopSend(protocolGame, 
             GAME_SHOP_CODE,
             json.encode(
                 {
@@ -760,7 +763,7 @@ function confirmGiftCoins()
 
     local protocolGame = g_game.getProtocolGame()
     if protocolGame then
-        protocolGame:sendExtendedOpcode(
+        shopSend(protocolGame, 
             GAME_SHOP_CODE,
             json.encode(
                 {
@@ -870,4 +873,115 @@ function onSearch()
     local children = gameShopWindow:getChildById("categoriesList"):getChildren()
     select(children[#children]:getChildById("button"), true)
     searchTextEdit:clearText()
+end
+
+
+-- ============================================================================
+-- Adaptador Mythbound (tibia-oce/BlackTek 10.98)
+-- El servidor usa la tienda por opcode extendido 102 con otro formato JSON
+-- (categorias con iconType, ofertas con title/clientId/outfit, puntos como
+-- numero e historial como texto). Aqui se traduce al formato de esta ventana.
+-- ============================================================================
+local mythDescriptions = {}
+local MYTH_ICONS = { item = 12, mount = 14, outfit = 15 }
+local MYTH_TYPES = { item = CATEGORY_ITEM, mount = CATEGORY_MOUNT, outfit = CATEGORY_OUTFIT }
+
+function isMythboundShop()
+    return g_game.getClientVersion() == 1098
+end
+
+function shopSend(protocolGame, code, encoded)
+    if not protocolGame then
+        return
+    end
+    if not isMythboundShop() then
+        return protocolGame:sendExtendedOpcode(code, encoded)
+    end
+
+    local ok, msg = pcall(json.decode, encoded)
+    if not ok or not msg then
+        return
+    end
+    local action, data = msg.action, msg.data or {}
+
+    if action == "fetch" then
+        protocolGame:sendExtendedOpcode(MYTHBOUND_SHOP_CODE, json.encode({ action = "fetch", data = { fetch = true } }))
+    elseif action == "getDescription" then
+        local byCategory = mythDescriptions[data.category] or {}
+        onGameShopFetchDescription({ name = data.name, category = data.category, description = byCategory[data.name] or "" })
+    elseif action == "purchase" then
+        local category = data.originalCategory
+        if not category and selectedOffer then
+            category = selectedOffer.data.originalCategory or selectedOffer.categoryId
+        end
+        protocolGame:sendExtendedOpcode(MYTHBOUND_SHOP_CODE, json.encode({
+            action = "purchase",
+            data = { category = category, title = data.name, price = data.price }
+        }))
+    elseif action == "transfer" then
+        onGameShopMsg({ type = "error", msg = "Gifting coins is not available on this server." })
+    end
+end
+
+local function mythHistoryEntry(text)
+    local name = text:match("^Bought (.-) on ") or text
+    local date = text:match(" on (%d+%-%d+%-%d+ %d+:%d+:%d+)") or ""
+    local price = tonumber(text:match("for (%d+) points")) or 0
+    return { name = name, date = date, price = -price, isSecondPrice = false }
+end
+
+function onMythboundOpcode(protocol, code, buffer)
+    local ok, json_data = pcall(json.decode, buffer)
+    if not ok or type(json_data) ~= "table" then
+        return
+    end
+    local action, data = json_data.action, json_data.data
+    if not action or data == nil or not gameShopWindow then
+        return
+    end
+
+    if action == "fetchBase" then
+        for _, cat in ipairs(data.categories or {}) do
+            if not categories[cat.title] then
+                addCategory({ title = cat.title, iconId = MYTH_ICONS[cat.iconType] or 12, categoryId = MYTH_TYPES[cat.iconType] or CATEGORY_ITEM })
+            end
+        end
+        DONATION_URL = data.url
+    elseif action == "fetchOffers" then
+        local list = {}
+        mythDescriptions[data.category] = {}
+        for _, offer in ipairs(data.offers or {}) do
+            local entry = {
+                name = offer.title,
+                price = offer.price,
+                count = offer.count or 1,
+                isSecondPrice = false,
+                categoryId = MYTH_TYPES[offer.type] or CATEGORY_EXTRAS
+            }
+            if offer.type == "outfit" and offer.outfit then
+                entry.id = offer.outfit.type
+            else
+                entry.id = offer.clientId
+            end
+            mythDescriptions[data.category][offer.title] = offer.description or ""
+            table.insert(list, entry)
+        end
+        offers[data.category] = list
+        if not selected then
+            local widget = gameShopWindow:getChildById("categoriesList"):getChildById(data.category)
+            if widget then
+                select(widget:getChildById("button"))
+            end
+        end
+    elseif action == "points" then
+        onGameShopUpdatePoints({ points = tonumber(data) or 0, secondPoints = -1 })
+    elseif action == "history" then
+        local list = {}
+        for _, text in ipairs(data) do
+            table.insert(list, mythHistoryEntry(tostring(text)))
+        end
+        onGameShopUpdateHistory(list)
+    elseif action == "msg" then
+        onGameShopMsg(data)
+    end
 end

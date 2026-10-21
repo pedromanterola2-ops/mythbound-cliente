@@ -901,6 +901,10 @@ function hide()
 end
 
 function toggle()
+    -- Mythbound (10.98): la tienda es la del modulo game_shop (opcode extendido 102)
+    if g_game.getClientVersion() == 1098 and modules.game_shop then
+        return modules.game_shop.toggle()
+    end
     if not controllerShop.ui then
         return
     end
@@ -912,6 +916,10 @@ function toggle()
 end
 
 function show()
+    -- Mythbound (10.98): la tienda es la del modulo game_shop (opcode extendido 102)
+    if g_game.getClientVersion() == 1098 and modules.game_shop then
+        return modules.game_shop.show()
+    end
     if not controllerShop.ui then
         return
     end

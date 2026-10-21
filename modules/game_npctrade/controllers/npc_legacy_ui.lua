@@ -21,6 +21,8 @@ local weightLabel = nil
 local capacityDesc = nil
 local capacityLabel = nil
 local tradeButton = nil
+local selectedItemWidget = nil
+local unitPriceLabel = nil
 local buyTab = nil
 local sellTab = nil
 local initialized = false
@@ -40,6 +42,23 @@ local selectedItem = nil
 
 local cancelNextRelease = nil
 
+-- Mythbound: formato de números con separador de miles y capacidad legible
+local function mbFormatNumber(n)
+    local s = tostring(math.floor(n or 0))
+    local formatted = s:reverse():gsub('(%d%d%d)', '%1,'):reverse()
+    return (formatted:gsub('^,', ''))
+end
+
+local function mbFormatWeight(oz)
+    if oz >= 1000000 then
+        return 'unlimited'
+    end
+    return string.format('%.2f', oz) .. ' ' .. WEIGHT_UNIT
+end
+
+local COLOR_PRICE_OK = '#f2c94c'
+local COLOR_PRICE_BAD = '#e05a4f'
+
 function controllerNpcTrader:legacy_init()
     npcWindow = g_ui.displayUI('/game_npctrade/templates/npctrade_legacy')
     npcWindow:setVisible(false)
@@ -57,6 +76,8 @@ function controllerNpcTrader:legacy_init()
     capacityDesc = setupPanel:getChildById('capacityDesc')
     capacityLabel = setupPanel:getChildById('capacity')
     tradeButton = npcWindow:recursiveGetChildById('tradeButton')
+    selectedItemWidget = setupPanel:getChildById('selectedItem')
+    unitPriceLabel = setupPanel:getChildById('unitPrice')
 
     buyWithBackpack = npcWindow:recursiveGetChildById('buyWithBackpack')
     ignoreCapacity = npcWindow:recursiveGetChildById('ignoreCapacity')
@@ -135,12 +156,18 @@ end
 function onQuantityValueChange(quantity)
     if selectedItem then
         weightLabel:setText(string.format('%.2f', selectedItem.weight * quantity) .. ' ' .. WEIGHT_UNIT)
-        priceLabel:setText(formatCurrency(getItemPrice(selectedItem)))
+        local total = getItemPrice(selectedItem)
+        priceLabel:setText(formatCurrency(total))
+        if getCurrentTradeType() == BUY and total > playerMoney then
+            priceLabel:setColor(COLOR_PRICE_BAD)
+        else
+            priceLabel:setColor(COLOR_PRICE_OK)
+        end
     end
 end
 
 function onTradeTypeChange(radioTabs, selected, deselected)
-    tradeButton:setText(selected:getText())
+    tradeButton:setText(selected == sellTab and 'Sell' or 'Buy')
     selected:setOn(true)
     deselected:setOn(false)
 
@@ -227,9 +254,11 @@ function setShowYourCapacity(state)
 end
 
 function clearSelectedItem()
-    nameLabel:clearText()
+    nameLabel:setText('Select an item')
     weightLabel:clearText()
     priceLabel:clearText()
+    if unitPriceLabel then unitPriceLabel:clearText() end
+    if selectedItemWidget then selectedItemWidget:setItem(nil) end
     tradeButton:disable()
     quantityScroll:setMinimum(0)
     quantityScroll:setMaximum(0)
@@ -240,11 +269,10 @@ function clearSelectedItem()
 end
 
 function getCurrentTradeType()
-    if tradeButton:getText() == tr('Buy') then
-        return BUY
-    else
+    if radioTabs and radioTabs:getSelectedWidget() == sellTab then
         return SELL
     end
+    return BUY
 end
 
 function getItemPrice(item, single)
@@ -296,6 +324,10 @@ end
 
 function refreshItem(item)
     nameLabel:setText(item.name)
+    if selectedItemWidget then selectedItemWidget:setItem(item.ptr) end
+    if unitPriceLabel then
+        unitPriceLabel:setText(formatCurrency(item.price) .. ' each  -  ' .. string.format('%.2f', item.weight) .. ' ' .. WEIGHT_UNIT)
+    end
 
     if getCurrentTradeType() == BUY then
         local capacityMaxCount = math.floor(playerFreeCapacity / item.weight)
@@ -336,16 +368,13 @@ function refreshTradeItems()
         local itemBox = g_ui.createWidget('NPCItemBox', itemsPanel)
         itemBox.item = item
 
-        local text = ''
-        local name = item.name
-        text = text .. name
+        local name = item.name or ''
+        itemBox:getChildById('name'):setText(name:sub(1, 1):upper() .. name:sub(2))
         if showWeight then
-            local weight = string.format('%.2f', item.weight) .. ' ' .. WEIGHT_UNIT
-            text = text .. '\n' .. weight
+            itemBox:getChildById('weight'):setText(string.format('%.2f', item.weight) .. ' ' .. WEIGHT_UNIT)
         end
-        local price = formatCurrency(item.price)
-        text = text .. '\n' .. price
-        itemBox:setText(text)
+        itemBox:getChildById('price'):setText(formatCurrency(item.price))
+        itemBox:setTooltip(name .. '\n' .. formatCurrency(item.price) .. ' each')
 
         local itemWidget = itemBox:getChildById('item')
         itemWidget:setItem(item.ptr)
@@ -366,7 +395,7 @@ function refreshPlayerGoods()
     checkSellAllTooltip()
 
     moneyLabel:setText(formatCurrency(playerMoney))
-    capacityLabel:setText(string.format('%.2f', playerFreeCapacity) .. ' ' .. WEIGHT_UNIT)
+    capacityLabel:setText(mbFormatWeight(playerFreeCapacity))
 
     local currentTradeType = getCurrentTradeType()
     local searchFilter = searchText:getText():lower()
@@ -380,6 +409,18 @@ function refreshPlayerGoods()
         local canTrade = canTradeItemLegacy(item)
         itemWidget:setOn(canTrade)
         itemWidget:setEnabled(canTrade)
+        local nameWidget = itemWidget:getChildById('name')
+        if nameWidget then
+            nameWidget:setColor(canTrade and '#f0f0f0' or '#7a7a7a')
+        end
+        local priceWidget = itemWidget:getChildById('price')
+        if priceWidget then
+            if currentTradeType == BUY and playerMoney < getItemPrice(item, true) then
+                priceWidget:setColor(COLOR_PRICE_BAD)
+            else
+                priceWidget:setColor(COLOR_PRICE_OK)
+            end
+        end
 
         local searchCondition = (searchFilter == '') or
                                     (searchFilter ~= '' and string.find(item.name:lower(), searchFilter) ~= nil)
@@ -517,7 +558,7 @@ function checkSellAllTooltip()
         end
     end
     if info ~= '' then
-        info = info .. '\nTotal: ' .. total .. ' gold'
+        info = info .. '\nTotal: ' .. mbFormatNumber(total) .. ' gold'
         sellAllButton:setTooltip(info)
     else
         sellAllButton:setEnabled(false)
@@ -528,7 +569,7 @@ function formatCurrency(amount)
     if CURRENCY_DECIMAL then
         return string.format('%.02f', amount / 100.0) .. ' ' .. CURRENCY
     else
-        return amount .. ' ' .. CURRENCY
+        return mbFormatNumber(amount) .. ' ' .. CURRENCY
     end
 end
 

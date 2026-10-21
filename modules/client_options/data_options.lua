@@ -199,7 +199,7 @@ return {
     },
     openMaximized                     = false,
     backgroundFrameRate               = {
-        value = 501,
+        value = 30, -- Mythbound: 30 FPS con la ventana en segundo plano (antes 501 = sin límite)
         action = function(value, options, controller, panels, extraWidgets)
             local text, v = value, value
             if value <= 0 or value >= 501 then

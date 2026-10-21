@@ -1,0 +1,8 @@
+Module
+  name: game_autoloot
+  description: Autoloot de Mythbound (opcode 0x60)
+  author: PYTR
+  sandboxed: true
+  scripts: [ autoloot ]
+  @onLoad: init()
+  @onUnload: terminate()

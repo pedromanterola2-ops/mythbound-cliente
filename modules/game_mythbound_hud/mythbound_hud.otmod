@@ -1,0 +1,11 @@
+Module
+  name: game_mythbound_hud
+  description: Mythbound - distribucion de interfaz parecida al Tibia original (se aplica una vez)
+  author: Mythbound
+  sandboxed: true
+  scripts: [ mythbound_hud ]
+  autoload: true
+  autoload-priority: 1001
+  dependencies: [ game_interface, client_options ]
+  @onLoad: init()
+  @onUnload: terminate()

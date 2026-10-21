@@ -63,11 +63,8 @@ function ForgeController:onGameStart()
         end
         self.currentTab = 'conversion'
     else
-        -- Store unload callback
-        self.callbacks.unloadModule = function()
-            g_modules.getModule("game_forge"):unload()
-        end
-        scheduleForgeEvent('unloadModule', self.callbacks.unloadModule, 100)
+        -- Mythbound (10.98) no tiene Forja: dejar el modulo inactivo en vez de
+        -- descargarlo (descargarlo dejaba un controlador huerfano en el siguiente login)
     end
 end
 

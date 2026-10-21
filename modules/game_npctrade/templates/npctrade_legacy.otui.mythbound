@@ -1,0 +1,344 @@
+
+NPCDetailLabel < Label
+  font: verdana-11px-rounded
+  color: #9a9a9a
+  text-auto-resize: true
+
+NPCDetailValue < Label
+  font: verdana-11px-rounded
+  color: #e6e6e6
+  text-align: right
+  anchors.right: parent.right
+  margin-right: 6
+  text-auto-resize: true
+
+NPCItemBox < UICheckBox
+  height: 40
+  margin-bottom: 1
+  background-color: #00000000
+  border-width: 1
+  border-color: #00000000
+  focusable: false
+  @onCheckChange: modules.game_npctrade.onItemBoxChecked(self)
+
+  $hover:
+    background-color: #ffffff12
+
+  $checked:
+    background-color: #ffffff22
+    border-color: #c8c8c8
+
+  Item
+    id: item
+    phantom: true
+    virtual: true
+    anchors.left: parent.left
+    anchors.verticalCenter: parent.verticalCenter
+    margin-left: 3
+
+  Label
+    id: name
+    phantom: true
+    font: verdana-11px-rounded
+    color: #f0f0f0
+    anchors.left: item.right
+    anchors.right: price.left
+    anchors.top: parent.top
+    margin-left: 8
+    margin-top: 5
+    margin-right: 4
+    text-wrap: false
+
+  Label
+    id: weight
+    phantom: true
+    font: verdana-11px-rounded
+    color: #8f8f8f
+    anchors.left: name.left
+    anchors.top: name.bottom
+    margin-top: 3
+    text-auto-resize: true
+
+  Label
+    id: price
+    phantom: true
+    font: Verdana Bold-11px
+    color: #f2c94c
+    text-align: right
+    anchors.right: parent.right
+    anchors.top: parent.top
+    margin-right: 6
+    margin-top: 5
+    text-auto-resize: true
+
+  Label
+    id: unit
+    phantom: true
+    font: verdana-11px-rounded
+    color: #8f8f8f
+    !text: 'c/u'
+    anchors.right: parent.right
+    anchors.top: price.bottom
+    margin-right: 6
+    margin-top: 3
+    text-auto-resize: true
+
+  $!on:
+    opacity: 0.55
+
+MainWindow
+  id: npcWindow
+  !text: 'Comercio'
+  size: 400 560
+  @onEscape: modules.game_npctrade.closeNpcTrade()
+
+  TabButton
+    id: buyTab
+    !tooltip: 'Objetos que puedes comprar'
+    !text: 'Comprar'
+    checked: true
+    on: true
+    height: 22
+    anchors.left: parent.left
+    anchors.right: parent.horizontalCenter
+    anchors.top: parent.top
+    margin-right: 2
+    margin-top: 2
+
+  TabButton
+    id: sellTab
+    !tooltip: 'Objetos que puedes vender'
+    !text: 'Vender'
+    height: 22
+    anchors.left: parent.horizontalCenter
+    anchors.right: parent.right
+    anchors.top: parent.top
+    margin-left: 2
+    margin-top: 2
+
+  Label
+    id: searchLabel
+    !text: 'Buscar:'
+    font: verdana-11px-rounded
+    color: #c0c0c0
+    anchors.left: parent.left
+    anchors.top: buyTab.bottom
+    margin-top: 11
+    text-auto-resize: true
+
+  TextEdit
+    id: searchText
+    anchors.left: searchLabel.right
+    anchors.right: parent.right
+    anchors.verticalCenter: searchLabel.verticalCenter
+    margin-left: 6
+    @onTextChange: modules.game_npctrade.onSearchTextChange()
+
+  FlatPanel
+    id: listFrame
+    anchors.left: parent.left
+    anchors.right: parent.right
+    anchors.top: searchText.bottom
+    anchors.bottom: setupPanel.top
+    margin-top: 6
+    margin-bottom: 8
+    padding: 2
+
+    VerticalScrollBar
+      id: itemsPanelListScrollBar
+      anchors.top: parent.top
+      anchors.bottom: parent.bottom
+      anchors.right: parent.right
+      step: 41
+      pixels-scroll: true
+
+    ScrollablePanel
+      id: itemsPanel
+      anchors.left: parent.left
+      anchors.right: prev.left
+      anchors.top: parent.top
+      anchors.bottom: parent.bottom
+      vertical-scrollbar: itemsPanelListScrollBar
+      margin-right: 2
+      layout:
+        type: verticalBox
+
+  FlatPanel
+    id: setupPanel
+    height: 150
+    enabled: false
+    anchors.left: parent.left
+    anchors.right: parent.right
+    anchors.bottom: buyOptions.top
+    margin-bottom: 6
+    padding: 6
+
+    Item
+      id: selectedItem
+      virtual: true
+      anchors.left: parent.left
+      anchors.top: parent.top
+
+    Label
+      id: name
+      font: Verdana Bold-11px
+      color: #ffffff
+      anchors.left: selectedItem.right
+      anchors.right: parent.right
+      anchors.top: parent.top
+      margin-left: 8
+      margin-top: 2
+
+    Label
+      id: unitPrice
+      font: verdana-11px-rounded
+      color: #9a9a9a
+      anchors.left: name.left
+      anchors.right: parent.right
+      anchors.top: name.bottom
+      margin-top: 4
+
+    NPCDetailLabel
+      id: amountDesc
+      !text: 'Cantidad:'
+      anchors.left: parent.left
+      anchors.top: selectedItem.bottom
+      margin-top: 8
+
+    HorizontalScrollBar
+      id: quantityScroll
+      anchors.left: parent.left
+      anchors.right: parent.right
+      anchors.top: amountDesc.bottom
+      margin-top: 4
+      show-value: true
+      minimum: 1
+      maximum: 100
+      step: 1
+      @onValueChange: modules.game_npctrade.onQuantityValueChange(self:getValue())
+
+    NPCDetailLabel
+      id: priceDesc
+      !text: 'Total:'
+      anchors.left: parent.left
+      anchors.top: quantityScroll.bottom
+      margin-top: 8
+
+    NPCDetailValue
+      id: price
+      font: Verdana Bold-11px
+      color: #f2c94c
+      anchors.top: priceDesc.top
+
+    NPCDetailLabel
+      id: moneyDesc
+      !text: 'Tu dinero:'
+      anchors.left: parent.left
+      anchors.top: priceDesc.bottom
+      margin-top: 4
+
+    NPCDetailValue
+      id: money
+      anchors.top: moneyDesc.top
+
+    NPCDetailLabel
+      id: weightDesc
+      !text: 'Peso:'
+      anchors.left: parent.horizontalCenter
+      anchors.top: priceDesc.top
+      margin-left: -40
+
+    NPCDetailLabel
+      id: weight
+      color: #e6e6e6
+      anchors.left: weightDesc.right
+      anchors.top: weightDesc.top
+      margin-left: 6
+
+    NPCDetailLabel
+      id: capacityDesc
+      !text: 'Capacidad:'
+      anchors.left: weightDesc.left
+      anchors.top: moneyDesc.top
+
+    NPCDetailLabel
+      id: capacity
+      color: #e6e6e6
+      anchors.left: capacityDesc.right
+      anchors.top: capacityDesc.top
+      margin-left: 6
+
+  Panel
+    id: buyOptions
+    height: 18
+    anchors.left: parent.left
+    anchors.right: parent.right
+    anchors.bottom: tradeButton.top
+    margin-bottom: 8
+
+    CheckBox
+      id: buyWithBackpack
+      !text: 'Comprar en mochila'
+      !tooltip: 'Los objetos se entregan dentro de mochilas (+20 gold por mochila)'
+      anchors.left: parent.left
+      anchors.verticalCenter: parent.verticalCenter
+      width: 170
+      @onCheckChange: modules.game_npctrade.onBuyWithBackpackChange()
+
+    CheckBox
+      id: ignoreCapacity
+      !text: 'Ignorar capacidad'
+      anchors.left: parent.horizontalCenter
+      anchors.verticalCenter: parent.verticalCenter
+      width: 170
+      margin-left: 10
+      @onCheckChange: modules.game_npctrade.onIgnoreCapacityChange()
+
+    CheckBox
+      id: ignoreEquipped
+      !text: 'Ignorar equipados'
+      !tooltip: 'No vender lo que llevas puesto'
+      anchors.left: parent.left
+      anchors.verticalCenter: parent.verticalCenter
+      width: 170
+      visible: false
+      checked: true
+      @onCheckChange: modules.game_npctrade.onIgnoreEquippedChange()
+
+    CheckBox
+      id: showAllItems
+      !text: 'Mostrar todo'
+      !tooltip: 'Mostrar también lo que no tienes'
+      anchors.left: parent.horizontalCenter
+      anchors.verticalCenter: parent.verticalCenter
+      width: 170
+      margin-left: 10
+      visible: false
+      checked: false
+      @onCheckChange: modules.game_npctrade.onShowAllItemsChange()
+
+  Button
+    id: sellAllButton
+    !text: 'Vender todo'
+    width: 86
+    anchors.left: parent.left
+    anchors.bottom: parent.bottom
+    visible: false
+    @onClick: modules.game_npctrade.sellAll()
+
+  Button
+    id: closeButton
+    !text: 'Cerrar'
+    width: 70
+    anchors.right: parent.right
+    anchors.bottom: parent.bottom
+    @onClick: modules.game_npctrade.closeNpcTrade()
+
+  Button
+    id: tradeButton
+    !text: 'Comprar'
+    width: 80
+    anchors.right: closeButton.left
+    anchors.bottom: parent.bottom
+    margin-right: 8
+    @onClick: modules.game_npctrade.onTradeClick()

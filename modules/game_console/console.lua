@@ -253,8 +253,11 @@ function consoleController:onInit()
         navigateMessageHistory(-1)
     end, consolePanel)
   
-    g_keyboard.bindKeyDown('Enter', switchChatOnCall, consolePanel)
-    g_keyboard.bindKeyDown('Escape', disableChatOnCall, consolePanel)
+    g_keyboard.bindKeyDown('Enter', switchChatOnCallOnce, consolePanel)
+    g_keyboard.bindKeyDown('Escape', disableChatOnCallOnce, consolePanel)
+    -- Mythbound: tambien desde el mapa (si el foco no esta en el chat); se evita el doble disparo
+    g_keyboard.bindKeyDown('Enter', switchChatOnCallOnce, modules.game_interface.getRootPanel())
+    g_keyboard.bindKeyDown('Escape', disableChatOnCallOnce, modules.game_interface.getRootPanel())
     g_keyboard.bindKeyPress('Ctrl+A', function()
         consoleTextEdit:clearText()
     end, consolePanel)
@@ -445,13 +448,33 @@ function switchChatOnCall()
                     walkAfterSend = true
                 end
                 toggleChat()
-            elseif walkAfterSend or modules.client_options.getOption('returnDisablesChat') then
+            else
+                -- Mythbound: Enter con la linea vacia siempre regresa a WASD (chat off)
                 -- empty Enter: cancel temporary chat / disable chat -> back to WASD
                 walkAfterSend = false
                 toggleChat()
             end
         end
     end
+end
+
+-- Mythbound: Enter/Escape estan ligados al chat y al mapa; si ambos reciben la tecla,
+-- solo cuenta la primera (evita que se alterne dos veces)
+local lastChatKeyToggle = 0
+function switchChatOnCallOnce()
+    if g_clock.millis() - lastChatKeyToggle < 150 then
+        return
+    end
+    lastChatKeyToggle = g_clock.millis()
+    switchChatOnCall()
+end
+
+function disableChatOnCallOnce()
+    if g_clock.millis() - lastChatKeyToggle < 150 then
+        return
+    end
+    lastChatKeyToggle = g_clock.millis()
+    disableChatOnCall()
 end
 
 function disableChatOnCall()
@@ -470,6 +493,11 @@ end
 
 function consoleController:onTerminate()
     save()
+    local gameRoot = modules.game_interface and modules.game_interface.getRootPanel()
+    if gameRoot then
+        g_keyboard.unbindKeyDown('Enter', switchChatOnCallOnce, gameRoot)
+        g_keyboard.unbindKeyDown('Escape', disableChatOnCallOnce, gameRoot)
+    end
     Keybind.delete("Chat Channel", "Close Current Channel")
     Keybind.delete("Chat Channel", "Next Channel")
     Keybind.delete("Chat Channel", "Previous Channel")
@@ -1847,7 +1875,9 @@ function onTalk(name, level, mode, message, channelId, creaturePos)
                 if plainText:sub(1,1) == string.char(1) then
                     plainText = plainText:sub(2)
                 end
-                processedText = processedText:gsub("{" .. textContent .. "}", plainText)
+                -- Mythbound: escapar caracteres especiales (antes truena con "(", "%", etc.)
+                local pat = ("{" .. textContent .. "}"):gsub("[%^%$%(%)%%%.%[%]%*%+%-%?]", "%%%0")
+                processedText = processedText:gsub(pat, (plainText:gsub("%%", "%%%%")))
             end
             processedText = processedText:gsub("{([^}]+)}", "%1")
             staticMessage = processedText

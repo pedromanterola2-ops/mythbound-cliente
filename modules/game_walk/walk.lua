@@ -228,6 +228,27 @@ end
 
 --- Handles the end of a walking event.
 local function onWalkFinish(player)
+    -- Si ya no hay ninguna flecha presionada, no dar el paso que quedo en cola
+    -- (evita el "paso doble" al tocar la tecla un poco mas de 200 ms)
+    if nextWalkDir and not smartWalkDir then
+        nextWalkDir = nil
+        return
+    end
+
+    -- Mythbound: si sigues presionando una flecha, el siguiente paso sale en
+    -- cuanto termina este (con la direccion mas reciente). Antes se esperaba la
+    -- auto-repeticion del teclado (200 ms) y se sentian tirones al caminar y al
+    -- cambiar de direccion.
+    if smartWalkDir then
+        nextWalkDir = nil
+        if not g_game.getFeature(GameAllowPreWalk) then
+            walk(smartWalkDir)
+        else
+            addWalkEvent(smartWalkDir)
+        end
+        return
+    end
+
     if nextWalkDir then
         if not g_game.getFeature(GameAllowPreWalk) then
             walk(nextWalkDir)
@@ -290,6 +311,8 @@ function bindWalkKey(key, dir)
     g_keyboard.bindKeyDown(key, function()
         g_keyboard.setKeyDelay(key, 1)
         changeWalkDir(dir)
+        -- Mythbound: nueva direccion al instante (o justo al terminar el paso actual)
+        smartWalk(dir)
     end, gameRootPanel, true)
 
     g_keyboard.bindKeyUp(key, function()

@@ -1,0 +1,98 @@
+AutolootRow < UIWidget
+  height: 36
+  margin-bottom: 2
+  background-color: #00000044
+  phantom: false
+
+  UIItem
+    id: item
+    size: 32 32
+    anchors.left: parent.left
+    anchors.verticalCenter: parent.verticalCenter
+    margin-left: 2
+    virtual: true
+    phantom: true
+
+  Button
+    id: remove
+    !text: tr('Remove')
+    width: 60
+    anchors.right: parent.right
+    anchors.verticalCenter: parent.verticalCenter
+    margin-right: 4
+
+  Label
+    id: name
+    anchors.left: item.right
+    anchors.right: remove.left
+    anchors.verticalCenter: parent.verticalCenter
+    margin-left: 8
+    margin-right: 4
+    color: #dfdfdf
+
+MainWindow
+  id: autolootWindow
+  !text: tr('Autoloot')
+  size: 340 440
+  @onEscape: modules.game_autoloot.toggle()
+
+  Label
+    id: help
+    anchors.top: parent.top
+    anchors.left: parent.left
+    anchors.right: parent.right
+    text-wrap: true
+    text-auto-resize: true
+    color: #bbbbbb
+    !text: tr('When you kill a monster, items on this list go straight to your backpack.\nRight-click an item: "Add to autoloot".')
+
+  TextList
+    id: list
+    vertical-scrollbar: listScrollBar
+    anchors.top: help.bottom
+    anchors.left: parent.left
+    anchors.right: parent.right
+    anchors.bottom: addEdit.top
+    margin-top: 8
+    margin-bottom: 8
+    padding: 2
+    focusable: false
+
+  VerticalScrollBar
+    id: listScrollBar
+    anchors.top: list.top
+    anchors.bottom: list.bottom
+    anchors.right: list.right
+    step: 38
+    pixels-scroll: true
+
+  TextEdit
+    id: addEdit
+    anchors.left: parent.left
+    anchors.right: addButton.left
+    anchors.verticalCenter: addButton.verticalCenter
+    margin-right: 5
+    !placeholder: tr('Item name (e.g. platinum coin)')
+
+  Button
+    id: addButton
+    !text: tr('Add')
+    width: 70
+    anchors.right: parent.right
+    anchors.bottom: closeButton.top
+    margin-bottom: 10
+    @onClick: modules.game_autoloot.addByName()
+
+  Label
+    id: count
+    anchors.left: parent.left
+    anchors.verticalCenter: closeButton.verticalCenter
+    color: #bbbbbb
+
+  Button
+    id: closeButton
+    !text: tr('Close')
+    width: 64
+    anchors.right: parent.right
+    anchors.bottom: parent.bottom
+    @onClick: modules.game_autoloot.toggle()

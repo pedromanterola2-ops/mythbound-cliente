@@ -9,6 +9,11 @@ controller:registerEvents(g_game, {
 
         g_game.enableFeature(GameFormatCreatureName)
 
+        -- Mythbound: el Tibia.spr 10.98 trae canal alfa (transparency: true en Tibia.otfi)
+        if version == 1098 then
+            g_game.enableFeature(GameSpritesAlphaChannel)
+        end
+
         -- For Walk
         g_game.enableFeature(GameAllowPreWalk)
         g_game.enableFeature(GameMapCache)
@@ -292,6 +297,6 @@ controller:registerEvents(g_game, {
         if version >= 1525 then
             g_game.enableFeature(GameTacticsWithoutFightMode)
         end
-        
+
     end
 })

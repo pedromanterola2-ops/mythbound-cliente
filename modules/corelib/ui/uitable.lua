@@ -318,18 +318,38 @@ function UITable:setSorting(colId, sortType)
     self.sortColumn = colId
 end
 
+-- Mythbound: comparador tolerante (evita "attempt to compare string with number")
+local function mbSortKey(row, col)
+    local c = row:getChildByIndex(col)
+    local v = c and c.sortvalue
+    if v == nil then return 0 end
+    if type(v) == 'number' then return v end
+    local n = tonumber(v)
+    if n then return n end
+    return tostring(v)
+end
+
+local function mbLess(a, b)
+    local ta, tb = type(a), type(b)
+    if ta == tb then return a < b end
+    -- numeros antes que texto
+    return ta == 'number'
+end
+
 function UITable:sort()
     if self.sortColumn <= 0 then
         return
     end
 
     if self.sortType == TABLE_SORTING_ASC then
+        local col = self.sortColumn
         table.sort(self.rows, function(rowA, b)
-            return rowA:getChildByIndex(self.sortColumn).sortvalue < b:getChildByIndex(self.sortColumn).sortvalue
+            return mbLess(mbSortKey(rowA, col), mbSortKey(b, col))
         end)
     else
+        local col = self.sortColumn
         table.sort(self.rows, function(rowA, b)
-            return rowA:getChildByIndex(self.sortColumn).sortvalue > b:getChildByIndex(self.sortColumn).sortvalue
+            return mbLess(mbSortKey(b, col), mbSortKey(rowA, col))
         end)
     end
 

@@ -64,6 +64,9 @@ SkillPercentPanel < ProgressBar
   anchors.top: parent.top
   phantom: false
 
+MythSkillPercentPanel < SkillPercentPanel
+  margin-left: 0
+
 XpBoostButton < UIWidget
   height: 30
   HorizontalSeparator
@@ -288,6 +291,55 @@ MiniWindow
       SkillPercentPanel
       margin-bottom: 5
         
+    SkillButton
+      id: mythSkill0
+      visible: false
+      SkillNameLabel
+        !text: tr('Mining')
+      SkillValueLabel
+      MythSkillPercentPanel
+
+    SkillButton
+      id: mythSkill1
+      visible: false
+      SkillNameLabel
+        !text: tr('Woodcutting')
+      SkillValueLabel
+      MythSkillPercentPanel
+
+    SkillButton
+      id: mythSkill2
+      visible: false
+      SkillNameLabel
+        !text: tr('Herbalism')
+      SkillValueLabel
+      MythSkillPercentPanel
+
+    SkillButton
+      id: mythSkill3
+      visible: false
+      SkillNameLabel
+        !text: tr('Crafting')
+      SkillValueLabel
+      MythSkillPercentPanel
+
+    SkillButton
+      id: mythSkill4
+      visible: false
+      SkillNameLabel
+        !text: tr('Enchanting')
+      SkillValueLabel
+      MythSkillPercentPanel
+
+    SkillButton
+      id: mythSkill5
+      visible: false
+      SkillNameLabel
+        !text: tr('Disenchanting')
+      SkillValueLabel
+      MythSkillPercentPanel
+      margin-bottom: 5
+
     HorizontalSeparator
       id: separadorOnOffenceInfoChange
       margin-bottom: 5

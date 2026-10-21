@@ -6,3 +6,6 @@
 *.ot* eol=lf 
 *.cpp eol=lf 
 *.h   eol=lf 
+*.otmm binary
+*.ico binary
+*.png binary
